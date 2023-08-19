@@ -1,19 +1,20 @@
 class BitBoard():
-    
-    def __init__(self,board_size):
-        self.board_size=board_size
-        self.board=[0x0000000810000000,0x0000001008000000]
         
-    def __init__(self,board_size,board0,board1):
+    def __init__(self,board_size,board0=None,board1=None):
         self.board_size=board_size
         self.board=[board0,board1]
+        if board0==None:
+            self.board[0]=0x0000000810000000
+        if  board1==None:
+            self.board[1]=0x0000001008000000
+        
         
     def make_mask(self,x,y):
         mask= 0x8000000000000000
         mask=mask>>("abcdefgh".index(x))
         return mask>>((int(y)-1)*8)
     
-    def transfer(put,k):
+    def transfer(self,put,k):
         if k==0:
             return (put << 8) & 0xffffffffffffff00
         elif k==1:
@@ -37,11 +38,13 @@ class BitBoard():
         for k in range(8):
             mask=self.transfer(pos,k)
             rev_=0
-            while mask!=0 and mask & self.board[1-i]:
+            while mask!=0 and (mask & self.board[1-i])!=0:
                 rev_|=mask
-                mask=self.transfer(pos,k)
-            if mask & self.board !=0:
+                print(k,rev_)
+                mask=self.transfer(mask,k)
+            if mask & self.board[i] !=0:
                 rev|=rev_
+        print(rev)
         lis=[0,0]
         lis[i]=self.board[i]^(pos|rev)
         lis[1-i]=self.board[1-i]^rev
@@ -49,6 +52,7 @@ class BitBoard():
     
     def count(self,i):
         return self.board[i].bit_count()
+    
 '''
 import sys
 import math

@@ -39,7 +39,7 @@ class BitBoard():
     def makeLegalBoard(self):
         horizontalBoard=self.board[1-self.turn] & 0x7e7e7e7e7e7e7e7e
         verticalBoard=self.board[1-self.turn] & 0x00FFFFFFFFFFFF00
-        allSideBoard=self.board[1-self.turn] & 0x007e7e7e7e7e7e00
+        allSideBoard=self.board[1-self.turn] & 0x00FFFFFFFFFFFF00
         blankBoard= 0xFFFFFFFFFFFFFFFF ^ (0x0000000000000000 | self.board[0] | self.board[1])
         legalBoard=0
         #左右
@@ -128,19 +128,14 @@ def changeOneBitTable(line):
 
 def estimate(x,y,bitboard):
     #手の評価
-    lb=bitboard.choose_pos(x,y+1).makeLegalBoard()
-    re=0
-    for i in range(64):
-        if lb&0x8000000000000000:
-            re+=1
-    return re
+    return 1
 
 def solve(bitboard):
     #本編
     legalBoard=bitboard.makeLegalBoard()
     mask=0x8000000000000000
     ma=-1
-    choose=-10**9
+    choose=-1
     for i in range(64):
         if legalBoard & mask:
             x=i%8

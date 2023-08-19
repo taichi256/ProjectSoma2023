@@ -12,10 +12,7 @@ class BitBoard():
         
     def make_mask(self,x,y):
         mask= 0x8000000000000000
-        if type(x)==int:
-            mask=mask>>x
-        else:
-            mask=mask>>("abcdefgh".index(x))
+        mask=mask>>("abcdefgh".index(x))
         return mask>>((int(y)-1)*8)
     
     def transfer(self,put,k):
@@ -39,7 +36,7 @@ class BitBoard():
     def makeLegalBoard(self):
         horizontalBoard=self.board[1-self.turn] & 0x7e7e7e7e7e7e7e7e
         verticalBoard=self.board[1-self.turn] & 0x00FFFFFFFFFFFF00
-        allSideBoard=self.board[1-self.turn] & 0x007e7e7e7e7e7e00
+        allSideBoard=self.board[1-self.turn] & 0x00FFFFFFFFFFFF00
         blankBoard= 0xFFFFFFFFFFFFFFFF ^ (0x0000000000000000 | self.board[0] | self.board[1])
         legalBoard=0
         #左右
@@ -116,52 +113,16 @@ class BitBoard():
                 tmp_one=tmp_one<<1
             print(''.join(ans))
 
-def changeZeroBitTable(line):
-    #BitBoardの形式に入力を変換
-    line=line.replace('1','.')
-    line=line.replace('0','1')
-    return int('0b'+line.replace('.','0'),0)
-
-def changeOneBitTable(line):
-    #BitBoardの形式に入力を変換
-    return int('0b'+line.replace('.','0'),0)
-
-def estimate(x,y,bitboard):
-    #手の評価
-    lb=bitboard.choose_pos(x,y+1).makeLegalBoard()
-    re=0
-    for i in range(64):
-        if lb&0x8000000000000000:
-            re+=1
-    return re
-
-def solve(bitboard):
-    #本編
-    legalBoard=bitboard.makeLegalBoard()
-    mask=0x8000000000000000
-    ma=-1
-    choose=-10**9
-    for i in range(64):
-        if legalBoard & mask:
-            x=i%8
-            y=i//8
-            es=estimate(x,y,bitboard)
-            if es>ma:
-                ma=es
-                choose=i
-        legalBoard<<=1
-    return 'abcdefgh'[choose%8]+str(choose//8+1)
-
-_id = int(input())
-board_size = int(input())
-
-# game loop
+bb=BitBoard(8)
+bb.visualize()
 while True:
-    lines=''
-    for i in range(board_size):
-        lines+=input()  
-    action_count = int(input())  
-    bb=BitBoard(8,changeZeroBitTable(lines),changeOneBitTable(lines),_id)
-    for i in range(action_count):
-        action = input()  
-    print(solve(bb))
+    while bb.isPass():
+        print(bb.turn,'パスです')
+        bb.visualize()
+        bb.turn=1-bb.turn
+    if bb.isFinished():
+        print('終わり！')
+        break
+    x,y=map(str,input().split())
+    bb=bb.choose_pos(x,y)
+    bb.visualize()

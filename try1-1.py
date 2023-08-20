@@ -78,6 +78,9 @@ class BitBoard():
         lis[1-self.turn]=self.board[1-self.turn]^rev
         return BitBoard(self.board_size,lis[0],lis[1],(self.turn+1)%2)
     
+    def choose_pos_int(self,x,y):
+        return self.choose_pos(x,y+1)
+    
     def count(self,i):
         return self.board[i].bit_count()
     
@@ -126,21 +129,29 @@ def changeOneBitTable(line):
     #BitBoardの形式に入力を変換
     return int('0b'+line.replace('.','0'),0)
 
-def estimate(x,y,bitboard):
-    #手の評価
-    lb=bitboard.choose_pos(x,y+1).makeLegalBoard()
+def bitcount(n):
+    #nを２進数化した時の１の数を測定
     re=0
     for i in range(64):
-        if lb&0x8000000000000000:
-            re+=1
+        re+=n&1
+        n>>=1
     return re
+
+def estimate(x,y,bitboard):
+    #手の評価
+    newbitboard=bitboard.choose_pos_int(x,y)
+    return sum([bitcount(newbitboard.board[1-newbitboard.turn] & 0x7e8181818181817e),
+                bitcount(newbitboard.board[1-newbitboard.turn]& 0x8100000000000081)*10,
+                -bitcount(newbitboard.board[newbitboard.turn] & 0x7e8181818181817e),
+                -bitcount(newbitboard.board[newbitboard.turn] & 0x8100000000000081)*10,
+                ])
 
 def solve(bitboard):
     #本編
     legalBoard=bitboard.makeLegalBoard()
     mask=0x8000000000000000
-    ma=-1
-    choose=-10**9
+    ma=-10**9
+    choose=-1
     for i in range(64):
         if legalBoard & mask:
             x=i%8
@@ -154,7 +165,6 @@ def solve(bitboard):
 
 _id = int(input())
 board_size = int(input())
-
 # game loop
 while True:
     lines=''

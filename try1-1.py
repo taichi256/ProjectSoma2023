@@ -145,9 +145,22 @@ def estimate(x,y,bitboard):
                 -bitcount(newbitboard.board[newbitboard.turn] & 0x7e8181818181817e),
                 -bitcount(newbitboard.board[newbitboard.turn] & 0x8100000000000081)*10,
                 ])
+    
+def estimate_board(bitboard):
+    return sum([bitcount(bitboard.board[bitboard.turn] & 0x7e8181818181817e),
+                bitcount(bitboard.board[bitboard.turn]& 0x8100000000000081)*10,
+                -bitcount(bitboard.board[1-bitboard.turn] & 0x7e8181818181817e),
+                -bitcount(bitboard.board[1-bitboard.turn] & 0x8100000000000081)*10,
+                ])
 
-def solve(bitboard):
-    #本編
+def alphaBetaPruning(bitboard,deep,returnAction=False):
+    if deep<=0:
+        return estimate_board(bitboard)
+    if bitboard.isFinished():
+        return estimate_board(bitboard)
+    if bitboard.isPass():
+        bitboard.turn=1-bitboard.turn
+        return -alphaBetaPruning(bitboard,deep-1)
     legalBoard=bitboard.makeLegalBoard()
     mask=0x8000000000000000
     ma=-10**9
@@ -156,11 +169,17 @@ def solve(bitboard):
         if legalBoard & mask:
             x=i%8
             y=i//8
-            es=estimate(x,y,bitboard)
+            es=-alphaBetaPruning(bitboard.choose_pos_int(x,y),deep-1)
             if es>ma:
                 ma=es
                 choose=i
         legalBoard<<=1
+    if returnAction:
+        return choose
+    return ma
+
+def solve(bitboard):
+    choose=alphaBetaPruning(bitboard,3,True)
     return 'abcdefgh'[choose%8]+str(choose//8+1)
 
 _id = int(input())

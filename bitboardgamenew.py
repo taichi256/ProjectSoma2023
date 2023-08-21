@@ -199,15 +199,19 @@ def solve(bitboard):
     choose=alphaBetaPruning(bitboard,3,True)
     return 'abcdefgh'[choose%8]+str(choose//8+1)
 
-_id = int(input())
-board_size = int(input())
+bb=BitBoard(8)
 # game loop
 while True:
     lines=''
-    for i in range(board_size):
-        lines+=input()  
-    action_count = int(input())  
-    bb=BitBoard(8,changeZeroBitTable(lines),changeOneBitTable(lines),_id)
-    for i in range(action_count):
-        action = input()  
-    print(solve(bb),'MSG',estimate_by_pos(bb))
+    if bb.isPass():
+        print('AIはパスをしました')
+        bb.turn=1-bb.turn
+    else:
+        s=solve(bb)
+        bb=bb.choose_pos(s[0],s[1])
+        print('AIが置きました')
+    bb.visualize()
+    a,b=map(int,input().split())
+    bb=bb.choose_pos_int(a-1,b-1)
+    print('あなたが起きました')
+    bb.visualize()

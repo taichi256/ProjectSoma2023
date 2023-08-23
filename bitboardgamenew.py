@@ -1,3 +1,4 @@
+import random
 class BitBoard():
         
     def __init__(self,board_size,board0=None,board1=None,turn=0):
@@ -138,32 +139,96 @@ def bitcount(n):
     return re
 
 def estimate_by_pos(bitboard):
-    point=[30,-12,0,-1,-1,0,-12,30,
-            -12,-15,-3,-3,-3,-3,-15,-12,
-           0,-3,0,-1,-1,0,-3,0,
-           -1,-3,-1,-1,-1,-1,-3,-1,
-           -1,-3,-1,-1,-1,-1,-3,-1,
-           0,-3,0,-1,-1,0,-3,0,
-           -12,-15,-3,-3,-3,-3,-15,-12,
-           30,-12,0,-1,-1,0,-12,30]
+    point=[100,-40,20,5,5,20,-40,100,
+            -40,-80,-1,-1,-1,-1,-80,-40,
+            10,-1,5,1,1,5,-1,20,
+            5,-1,1,0,0,1,-1,5,
+            5,-1,1,0,0,1,-1,5,
+            10,-1,5,1,1,5,-1,20,
+            -40,-80,-1,-1,-1,-1,-80,-40,
+            100,-40,20,5,5,20,-40,100,]
+    '''
+        point=[30,-1,10,5,5,10,-1,30,
+                -1,-3,3,3,3,3,-3,-1,
+            10,3,5,6,6,5,3,10,
+             10,5,6,6,6,6,5,10,
+            10,5,6,6,6,6,5,10,
+             10,3,5,6,6,5,3,10,
+            -1,-3,3,3,3,3,-3,-1,
+            30,-1,10,5,5,10,-1,30,]
+    '''
     me=bitboard.board[bitboard.turn]
     opponent=bitboard.board[1-bitboard.turn]
     re=0
     for i in range(64):
-        re+=(int(me&1)-int(opponent&1))*point[63-i]
+        re+=(int(me&1)-int(opponent&1))*point[63-i]*random.random()*3
         me>>=1
         opponent>>=1
     return re
 
 def estimate_by_way(bitboard):
     LegalBoard=bitboard.makeLegalBoard()
-    bitboard.turn=1-bitboard.turn
-    OpponentLegalBoard=bitboard.makeLegalBoard()
-    bitboard.turn=1-bitboard.turn
-    return bitcount(LegalBoard)-bitcount(OpponentLegalBoard)
+    #bitboard.turn=1-bitboard.turn
+    #OpponentLegalBoard=bitboard.makeLegalBoard()
+    #åbitboard.turn=1-bitboard.turn
+    return (bitcount(LegalBoard)+random.random()*2)*10
+
+def count_left(edge):
+    count=0
+    while True:
+        if edge&1:
+            count+=1
+        else:
+            return count
+        edge>>=1
     
+def count_right(edge):
+    count=0
+    while True:
+        if edge&0x80:
+            count+=1
+        else:
+            return count
+        edge<<=1
+
+def calculateStableCount(my_edge,opponent_edge):
+    if ((my_edge|opponent_edge)==0xFF):
+        return bitcount(my_edge)
+    else:
+        return count_left(my_edge)+count_right(my_edge)
+    
+def make_stable_cnt():
+    stable_cnt=[0 for _ in range(256*256)]
+    for i in range(256):
+        for j in range(256):
+            if i&j!=0:
+                continue
+            stable_cnt[i*256+j]=calculateStableCount(i,j)
+    return stable_cnt
+
+def count_stable_stone(bitboard,i):
+    up_edge=(0xFF00000000000000&bitboard.board[i])>>56
+    right_edge=((bitboard.board[i]&0x0101010101010101)*0x0102040810204080)>>56&0x00000000000000FF
+    down_edge=bitboard.board[i]&0x00000000000000FF
+    left_edge=((bitboard.board[i]&0x8080808080808080)*0x0002040810204081)>>56&0x00000000000000FF
+    return up_edge,right_edge,down_edge,left_edge
+    
+
+def stable_stone(bitboard,i):
+    up_me,right_me,down_me,left_me=count_stable_stone(bitboard,i)
+    up_opp,right_opp,down_opp,left_opp=count_stable_stone(bitboard,1-i)
+    return sum([stable_cnt[up_me*256+up_opp],
+            stable_cnt[right_me*256+right_opp],
+            stable_cnt[down_me*256+down_opp],
+            stable_cnt[left_me*256+left_opp],
+            -bitcount(0x8100000000000081&bitboard.board[i])
+            ])
+    
+def estimate_from_stable_stone(bitboard):
+    return stable_stone(bitboard,bitboard.turn)-stable_stone(bitboard,1-bitboard.turn)
+
 def estimate_board(bitboard):
-    return estimate_by_pos(bitboard)+estimate_by_way(bitboard)
+    return 2*estimate_by_pos(bitboard)+estimate_by_way(bitboard)+5*estimate_from_stable_stone(bitboard)
 
 def alphaBetaPruning(bitboard,deep,returnAction=False,alpha=None,beta=None):
     if alpha==None:
@@ -199,6 +264,7 @@ def solve(bitboard):
     choose=alphaBetaPruning(bitboard,3,True)
     return 'abcdefgh'[choose%8]+str(choose//8+1)
 
+stable_cnt=make_stable_cnt()
 bb=BitBoard(8)
 # game loop
 while True:
